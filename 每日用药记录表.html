@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>每日用药记录表</title>
+<style>
+  :root {
+    --ink: #1f2937;
+    --line: #cbd5e1;
+    --head: #eef2f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    color: var(--ink);
+    max-width: 780px;
+    margin: 20px auto;
+    padding: 0 16px 60px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 20px; margin-bottom: 2px; }
+  .subtitle { color: #64748b; font-size: 12.5px; margin-bottom: 14px; }
+
+  .toolbar {
+    position: sticky; top: 0; background: #fff;
+    display: flex; gap: 10px; padding: 10px 0; border-bottom: 2px solid #0f172a;
+    margin-bottom: 14px; z-index: 10;
+  }
+  .toolbar button {
+    border: none; border-radius: 6px; padding: 9px 16px; font-size: 13.5px;
+    cursor: pointer; font-weight: 600;
+  }
+  .btn-print { background: #0f172a; color: #fff; }
+  .btn-reset { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1 !important; }
+
+  .datebar {
+    display: flex; gap: 20px; font-size: 13px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .datebar label { display: flex; align-items: center; gap: 6px; }
+  .datebar input[type=text], .datebar input[type=date] {
+    border: none; border-bottom: 1px solid #94a3b8; padding: 3px 4px; font-size: 13px;
+  }
+
+  .note-box {
+    background: #e8f4ff; border: 1px solid #93c5fd; border-radius: 6px;
+    padding: 8px 12px; font-size: 12.5px; color: #1e3a8a; margin-bottom: 14px;
+  }
+
+  .block {
+    border: 1px solid var(--line); border-radius: 7px; margin-bottom: 10px; overflow: hidden;
+  }
+  .block-header {
+    background: var(--head); padding: 7px 12px; font-weight: 700; font-size: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .block-body { padding: 8px 12px 10px 12px; }
+  .item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 5px 0;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .item:last-child { border-bottom: none; }
+  .item input[type=checkbox] {
+    width: 17px; height: 17px; margin-top: 2px; flex: 0 0 auto; cursor: pointer;
+  }
+  .item-text b { color: #0f172a; }
+  .usage { color: #475569; font-size: 12px; display: block; }
+
+  .flag {
+    background: #fdecec; border: 1px solid #e6a4a4; border-radius: 5px;
+    padding: 6px 9px; font-size: 12px; color: #8a1f1f; margin-top: 6px;
+  }
+  .flagnote {
+    background: #fff7e6; border: 1px solid #f0c36d; border-radius: 5px;
+    padding: 6px 9px; font-size: 12px; color: #7a4f00; margin-top: 6px;
+  }
+  .yn { display: flex; gap: 14px; align-items: center; margin-top: 4px; font-size: 12.8px; }
+  .yn label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  .two-col { display: flex; gap: 10px; flex-wrap: wrap; }
+  .two-col .block { flex: 1; min-width: 260px; }
+
+  .tracking {
+    border: 1.5px solid #0f172a; border-radius: 7px; padding: 10px 14px; margin-top: 8px;
+  }
+  .tracking h2 { font-size: 15px; margin: 0 0 8px 0; }
+  .track-row {
+    display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; flex-wrap: wrap;
+  }
+  .track-row label { min-width: 210px; }
+  .track-row input[type=number], .track-row input[type=text] {
+    border: 1px solid #94a3b8; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100px;
+  }
+  .unit { color: #64748b; font-size: 12px; }
+
+  textarea#notes {
+    width: 100%; min-height: 60px; border: 1px solid #94a3b8; border-radius: 4px;
+    padding: 6px 8px; font-size: 13px; font-family: inherit; margin-top: 6px;
+  }
+
+  .footer-note {
+    font-size: 11px; color: #94a3b8; margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 8px;
+  }
+
+  .savehint {
+    font-size: 12px; color: #475569; margin-top: 6px;
+  }
+
+  @media print {
+    .toolbar, .savehint { display: none !important; }
+    body { margin: 0; max-width: 100%; }
+    .block { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="btn-print" onclick="window.print()">打印 / 另存为 PDF</button>
+  <button class="btn-reset" onclick="if(confirm('确定要清空所有已填写的内容吗？')) resetForm()">清空重填</button>
+</div>
+
+<h1>每日用药记录表 · Daily Medication Log</h1>
+<div class="subtitle">填写后点击上方"打印 / 另存为 PDF"，保存的 PDF 文件可再上传到 Google Drive 保存。</div>
+
+<div class="datebar">
+  <label>姓名：<input type="text" id="name" placeholder="填写姓名"></label>
+  <label>日期：<input type="date" id="logdate"></label>
+</div>
+
+<div class="note-box">
+  【更新提示】2026年7月6日就诊时，医生决定将偏头痛预防药由 Qulipta（阿托吉泮，60mg，自2024年7月服用）试换为
+  <b>Nurtec ODT</b>（瑞美吉泮，75mg），观察是否能够耐受（试用/评估阶段）。请按医嘱停用 Qulipta，改按下方安排执行。
+</div>
+
+<div class="block">
+  <div class="block-header">早餐前 30–60 分钟（Before Breakfast）</div>
+  <div class="block-body">
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Dexlansoprazole 60mg</b>（右兰索拉唑）
+        <span class="usage">用途：抑制胃酸，治疗胃食管反流；须空腹提前30–60分钟服用。</span>
+      </div>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Losartan 25mg</b>（氯沙坦）
+        <span class="usage">用途：降血压，保护心血管与肾脏。</span>
+      </div>
+    </label>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-header">早餐时（During Breakfast）</div>
+  <div class="block-body">
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Metformin ER 500mg</b>（二甲双胍缓释片，第1次/共2次）
+        <span class="usage">用途：降血糖，减少肝脏产糖并改善胰岛素敏感性。</span>
+      </div>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Jardiance 25mg</b>（恩格列净）
+        <span class="usage">用途：降血糖，通过尿液帮助排出多余糖分。</span>
+      </div>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Vitamin D3</b>（维生素D3）— <span class="usage" style="display:inline">骨骼健康</span></div>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>AREDS2</b>（眼部营养配方）— <span class="usage" style="display:inline">黄斑/视网膜保护</span></div>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>关节保健品</b>（Joint Supplement）— <span class="usage" style="display:inline">关节保养</span></div>
+    </label>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-header">早餐后（After Breakfast）</div>
+  <div class="block-body">
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Nurtec ODT 75mg</b>（瑞美吉泮口溶片）
+        <span class="usage">用途：偏头痛预防，每48小时（隔日）一次，舌下含服至溶解。</span>
+      </div>
+    </label>
+    <div class="flagnote">
+      隔日服用提醒：请勾选今日是否服用，避免漏服或重复服用。
+      <div class="yn">
+        <label><input type="radio" name="nurtec_today" value="yes"> 今日服用</label>
+        <label><input type="radio" name="nurtec_today" value="no"> 今日为间隔日，不服用</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="block">
+    <div class="block-header">晚餐时（During Dinner）</div>
+    <div class="block-body">
+      <label class="item">
+        <input type="checkbox">
+        <div class="item-text"><b>Metformin ER 500mg</b>（第2次/共2次）
+          <span class="usage">用途：控制餐后及夜间血糖。</span>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-header">晚餐后（After Dinner）</div>
+    <div class="block-body">
+      <label class="item">
+        <input type="checkbox">
+        <div class="item-text"><b>Rosuvastatin 20mg</b>（瑞舒伐他汀）
+          <span class="usage">用途：降血脂，保护心血管。</span>
+        </div>
+      </label>
+      <label class="item">
+        <input type="checkbox">
+        <div class="item-text"><b>Magnesium 250mg</b>（镁）
+          <span class="usage">用途：帮助放松、改善睡眠。</span>
+        </div>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-header">睡前（Before Sleep）</div>
+  <div class="block-body">
+    <label class="item">
+      <input type="checkbox">
+      <div class="item-text"><b>Esomeprazole (Nexium) 20mg</b>（埃索美拉唑）
+        <span class="usage">用途：抑制胃酸，睡前服用以控制夜间反酸。</span>
+      </div>
+    </label>
+    <div class="flag">
+      提醒：与早晨的 Dexlansoprazole 同属抑酸药（PPI类），两者长期联合使用并不常见，是否需要继续同时服用
+      （例如作为过渡期或分时段治疗方案）请医生确认。
+    </div>
+  </div>
+</div>
+
+<div class="tracking">
+  <h2>每日记录</h2>
+  <div class="track-row">
+    <label>血糖（早餐后2小时）：</label>
+    <input type="number" id="glucose_am" placeholder="数值"> <span class="unit">mg/dL</span>
+  </div>
+  <div class="track-row">
+    <label>血糖（晚餐后2小时）：</label>
+    <input type="number" id="glucose_pm" placeholder="数值"> <span class="unit">mg/dL</span>
+  </div>
+  <div class="track-row">
+    <label>夜间口干程度（0=无，10=非常严重）：</label>
+    <input type="number" id="drymouth" min="0" max="10" placeholder="0-10">
+  </div>
+  <div class="track-row">
+    <label>体重（每周记录一次）：</label>
+    <input type="number" id="weight" placeholder="数值" step="0.1"> <span class="unit">磅</span>
+  </div>
+  <div class="track-row" style="align-items:flex-start;">
+    <label>今日备注：</label>
+    <textarea id="notes" placeholder="例如：食欲情况、不适症状、饮食内容等"></textarea>
+  </div>
+</div>
+
+<div class="footer-note">
+  本表仅为服药提醒与记录工具，不能替代医生医嘱。如药物、剂量或时间有调整，请及时更新本表。<br>
+  使用方法：填写完成后点击顶部"打印 / 另存为 PDF"按钮，在打印对话框中选择"另存为 PDF"，保存后即可上传到 Google Drive 或其他云端存储。
+</div>
+
+<script>
+  // Default date to today
+  (function(){
+    var d = new Date();
+    var iso = d.toISOString().slice(0,10);
+    document.getElementById('logdate').value = iso;
+  })();
+
+  function resetForm() {
+    document.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked = false; });
+    document.querySelectorAll('input[type=radio]').forEach(function(r){ r.checked = false; });
+    document.querySelectorAll('input[type=number]').forEach(function(n){ n.value = ''; });
+    document.getElementById('notes').value = '';
+    document.getElementById('name').value = '';
+  }
+</script>
+
+</body>
+</html>
